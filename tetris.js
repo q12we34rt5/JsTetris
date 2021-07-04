@@ -23,7 +23,8 @@ function GetTexture(path) {
     var texture = {
         canvas: document.createElement("canvas"),
         width: 0,
-        height: 0
+        height: 0,
+        ready: false
     };
     var img = new Image();
     img.onload = () => {
@@ -32,54 +33,118 @@ function GetTexture(path) {
         texture.width = img.width / 16;
         texture.height = img.height / 10;
         texture.canvas.getContext("2d").drawImage(img, 0, 0);
+        texture.ready = true;
     };
     img.src = path;
     return texture;
 }
 
-function CreateView(canvas, kwargs = {
+function CreateView(canvases = {
+    board: null,
+    next: [null, null, null, null, null],
+    hold: null
+}, kwargs = {
     block: {
+        texture: {
+            block: null,
+            shadow: null
+        },
         width: 16,
         height: 16
     },
-    sx: 3,
-    sy: 3,
-    width: 12,
-    height: 22
+    board: {
+        sx: 3,
+        sy: 3,
+        width: 12,
+        height: 22
+    },
+    next: {
+        sx: 0,
+        sy: 0,
+        width: 6,
+        height: 6
+    },
+    hold: {
+        sx: 0,
+        sy: 0,
+        width: 6,
+        height: 6
+    }
 }) {
     var view = {
         block: {
-            texture: GetTexture("assets/texture10.png"),
+            texture: GetTexture(kwargs.block.texture.block),
             width: kwargs.block.width,
             height: kwargs.block.height
         },
         shadow: {
-            texture: GetTexture("assets/texture2_shadow.png"),
+            texture: GetTexture(kwargs.block.texture.shadow),
             width: kwargs.block.width,
             height: kwargs.block.height
         },
+        drawBlock: null,
         board: {
-            canvas: canvas,
-            ctx: canvas.getContext("2d"),
-            data_buf: Array(kwargs.height).fill().map(() => new Uint8Array(kwargs.width).map(() => 0xFF)),
-            shadow_buf: Array(kwargs.height).fill().map(() => new Uint8Array(kwargs.width).map(() => 0xFF)),
-            sx: kwargs.sx,
-            sy: kwargs.sy,
-            width: kwargs.width,
-            height: kwargs.height,
-            drawBlock: null,
+            canvas: canvases.board,
+            ctx: canvases.board.getContext("2d"),
+            data_buf: Array(kwargs.board.height).fill().map(() => new Uint8Array(kwargs.board.width).map(() => 0xFF)),
+            shadow_buf: Array(kwargs.board.height).fill().map(() => new Uint8Array(kwargs.board.width).map(() => 0xFF)),
+            sx: kwargs.board.sx,
+            sy: kwargs.board.sy,
+            width: kwargs.board.width,
+            height: kwargs.board.height,
             pasteShadow: null,
+            initial: null,
+            update: null
+        },
+        boundaryData: [
+            [0x16, 0x1A, 0x1A, 0x1A, 0x1A, 0x1C],
+            [0x15, 0x00, 0x00, 0x00, 0x00, 0x15],
+            [0x15, 0x00, 0x00, 0x00, 0x00, 0x15],
+            [0x15, 0x00, 0x00, 0x00, 0x00, 0x15],
+            [0x15, 0x00, 0x00, 0x00, 0x00, 0x15],
+            [0x13, 0x1A, 0x1A, 0x1A, 0x1A, 0x19],
+        ],
+        next: {
+            canvases: Array(5).fill().map(() => {
+                return {
+                    canvas: null, ctx: null, data_buf: Array(6).fill().map(() => new Uint8Array(6).map(() => 0xFF))
+                };
+            }),
+            sx: kwargs.next.sx,
+            sy: kwargs.next.sy,
+            width: kwargs.next.width,
+            height: kwargs.next.height,
+            drawedBoundary: false,
+            initial: null,
+            update: null
+        },
+        hold: {
+            canvas: null,
+            ctx: null,
+            data_buf: Array(6).fill().map(() => new Uint8Array(6).map(() => 0xFF)),
+            sx: kwargs.hold.sx,
+            sy: kwargs.hold.sy,
+            width: kwargs.hold.width,
+            height: kwargs.hold.height,
+            drawedBoundary: false,
+            initial: null,
             update: null
         }
     };
-    view.board.drawBlock = (x, y, value) => {
-        view.board.ctx.drawImage(view.block.texture.canvas,
+    // initial view
+    view.drawBlock = (ctx, x, y, value) => {
+        ctx.drawImage(view.block.texture.canvas, 0, 0,
+            view.block.texture.width, view.block.texture.height,
+            x * view.block.width, y * view.block.height,
+            view.block.width, view.block.height);
+        ctx.drawImage(view.block.texture.canvas,
             view.block.texture.width * (value & 0x0F),
             view.block.texture.height * (value >> 4),
             view.block.texture.width, view.block.texture.height,
             x * view.block.width, y * view.block.height,
             view.block.width, view.block.height);
     };
+    // initial board
     view.board.pasteShadow = (x, y, value) => {
         view.board.ctx.drawImage(view.shadow.texture.canvas,
             view.shadow.texture.width * (value & 0x0F),
@@ -88,21 +153,94 @@ function CreateView(canvas, kwargs = {
             x * view.shadow.width, y * view.shadow.height,
             view.shadow.width, view.shadow.height);
     };
+    view.board.initial = () => {
+        // set board canvas size
+        canvases.board.width = view.board.width * view.block.width;
+        canvases.board.height = view.board.height * view.block.height;
+    };
     view.board.update = (data, shadow) => {
         for (var i = 0; i < view.board.height; i++)
             for (var j = 0; j < view.board.width; j++) {
                 const ci = view.board.sy + i, cj = view.board.sx + j;
                 if (view.board.data_buf[i][j] != data[ci][cj]) {
                     view.board.data_buf[i][j] = data[ci][cj];
-                    view.board.drawBlock(j, i, view.board.data_buf[i][j]);
+                    view.drawBlock(view.board.ctx, j, i, view.board.data_buf[i][j]);
                 }
                 if (view.board.shadow_buf[i][j] != shadow[ci][cj] && !data[ci][cj]) {
                     view.board.shadow_buf[i][j] = shadow[ci][cj];
-                    view.board.drawBlock(j, i, view.board.data_buf[i][j]);
+                    view.drawBlock(view.board.ctx, j, i, view.board.data_buf[i][j]);
                     view.board.pasteShadow(j, i, view.board.shadow_buf[i][j]);
                 }
             }
     };
+    // initial next
+    view.next.initial = () => {
+        // set next canvases size
+        try {
+            view.next.canvases.forEach(value => {
+                value.canvas.width = view.next.width * view.block.width;
+                value.canvas.height = view.next.height * view.block.height;
+            });
+        }
+        catch (e) { }
+    };
+    view.next.update = (queue) => {
+        if (!view.next.drawedBoundary && view.block.texture.ready) {
+            for (var k = 0; k < 5; k++)
+                for (var i = 0; i < view.next.height; i++)
+                    for (var j = 0; j < view.next.width; j++) {
+                        const ci = view.next.sy + i, cj = view.next.sx + j;
+                        view.drawBlock(view.next.canvases[k].ctx, j, i, view.boundaryData[ci][cj]);
+                    }
+            view.next.drawedBoundary = true;
+        }
+        for (var k = 0; k < 5; k++)
+            for (var i = 0; i < 2; i++)
+                for (var j = 0; j < 4; j++) {
+                    const ci = i + 2, cj = j + 1;
+                    if (view.next.canvases[k].data_buf[ci][cj] != queue[k][i][j]) {
+                        view.next.canvases[k].data_buf[ci][cj] = queue[k][i][j];
+                        view.drawBlock(view.next.canvases[k].ctx, cj - view.next.sx, ci - view.next.sy, view.next.canvases[k].data_buf[ci][cj]);
+                    }
+                }
+    };
+    for (var i = 0; i < 5; i++) {
+        try {
+            view.next.canvases[i].canvas = canvases.next[i];
+            view.next.canvases[i].ctx = canvases.next[i].getContext("2d");
+        }
+        catch (e) { }
+    }
+    // initial hold
+    view.hold.canvas = canvases.hold;
+    try { view.hold.ctx = canvases.hold.getContext("2d") }
+    catch (e) { }
+    view.hold.initial = () => {
+        view.hold.canvas.width = view.hold.width * view.block.width;
+        view.hold.canvas.height = view.hold.height * view.block.height;
+    };
+    view.hold.update = (data) => {
+        if (!view.hold.drawedBoundary && view.block.texture.ready) {
+            for (var i = 0; i < view.hold.height; i++)
+                for (var j = 0; j < view.hold.width; j++) {
+                    const ci = view.hold.sy + i, cj = view.hold.sx + j;
+                    view.drawBlock(view.hold.ctx, j, i, view.boundaryData[ci][cj]);
+                }
+            view.hold.drawedBoundary = true;
+        }
+        for (var i = 0; i < 2; i++)
+            for (var j = 0; j < 4; j++) {
+                const ci = i + 2, cj = j + 1;
+                if (view.hold.data_buf[ci][cj] != data[i][j]) {
+                    view.hold.data_buf[ci][cj] = data[i][j];
+                    view.drawBlock(view.hold.ctx, cj - view.hold.sx, ci - view.hold.sy, view.hold.data_buf[ci][cj]);
+                }
+            }
+    };
+    // initial 
+    view.board.initial();
+    view.next.initial();
+    view.hold.initial();
     return view;
 }
 
@@ -387,6 +525,17 @@ function CreateModel(width, height) {
             eraseLine: null,
             shift: null
         },
+        next: {
+            queue: [null, null, null, null, null],
+            update: null
+        },
+        hold: {
+            data: null,
+            type: null,
+            hasHolded: false,
+            clear: null,
+            holdBlock: null
+        },
         controller: {
             x: 0,
             y: 0,
@@ -429,11 +578,13 @@ function CreateModel(width, height) {
         reset: null,
         update: null
     };
+    // initial block
     model.block.SRS.getTests = (type, rot, dir) => {
         if (type == model.block.type.I) return model.block.SRS.I[rot][dir];
         else if (type == model.block.type.O) return model.block.SRS.O[rot][dir];
         return model.block.SRS.JLSTZ[rot][dir];
     };
+    // initial board
     model.board.clear = () => {
         for (var i = 0; i < model.board.height; i++)
             for (var j = 0; j < model.board.width; j++)
@@ -528,6 +679,33 @@ function CreateModel(width, height) {
             model.board.clearingBuf[dest - i] = clear_buf[buf_len - i - 1];
         }
     };
+    // initial next
+    model.next.update = () => {
+        for (var i = 0; i < 5; i++) {
+            const type = model.controller.blockQueue[i];
+            model.next.queue[i] = model.block.data[type][0];
+        }
+    };
+    // initial hold
+    model.hold.clear = () => {
+        model.hold.data = Array(2).fill().map(() => new Uint8Array(4));
+        model.hold.type = -1;
+        model.hold.hasHolded = false;
+    };
+    model.hold.holdBlock = () => {
+        if (model.hold.hasHolded)
+            return false;
+        model.board.eraseBlock(model.controller.x, model.controller.y, model.controller.type, model.controller.rot);
+        if (model.hold.type != -1) {
+            model.controller.blockQueue.unshift(model.hold.type);
+        }
+        model.hold.type = model.controller.type;
+        model.controller.generateBlock();
+        model.hold.hasHolded = true;
+        model.hold.data = model.block.data[model.hold.type][0];
+        return true;
+    };
+    // initial controller
     model.controller.randomArray = (src = [0, 1, 2, 3, 4, 5, 6]) => {
         for (var i = 0; i < src.length; i++) {
             var ri = Math.floor(Math.random() * src.length);
@@ -569,6 +747,10 @@ function CreateModel(width, height) {
         model.board.pasteBlock(model.controller.x, model.controller.y, model.controller.type, model.controller.rot);
         // paste shadow
         model.controller.pasteShadow();
+        // update next queue
+        model.next.update();
+        // set hold block
+        model.hold.hasHolded = false;
         return true;
     };
     model.controller.getDropPlace = () => {
@@ -673,7 +855,7 @@ function CreateModel(width, height) {
 
     };
     model.controller.key.hold = () => {
-
+        return model.hold.holdBlock();
     };
     model.controller.initial = () => {
 
@@ -699,12 +881,14 @@ function CreateModel(width, height) {
         model.controller.previousState.rot = model.controller.rot;
         return true;
     };
+    // initial model
     model.initial = () => {
         model.controller.initial();
     };
     model.reset = () => {
         model.board.clear();
         model.controller.reset();
+        model.hold.clear();
     };
     model.update = () => {
         var succ = model.controller.update();
@@ -719,79 +903,265 @@ function CreateController(model, view) {
     var controller = {
         model: model,
         view: view,
-        start: null,
+        modelUpdate: null,
+        viewUpdate: null,
+        initial: null,
         setModelTimer: null,
         modelTimer: null,
         viewTimer: null,
-        keyFunction: null
+        keyAction: {
+            rotateRight: 38,
+            softDrop: 40,
+            moveLeft: 37,
+            moveRight: 39,
+            hardDrop: 32,
+            rotateLeft: 90,
+            holdBlock: 67
+        },
+        keyState: {},
+        blockMoveDelay: 100,
+        blockMoveSpeed: 50,
+        blockDropDelay: 50,
+        blockDropSpeed: 20,
+        newKeyAction: null,
+        keyDown: null,
+        keyUp: null,
+        keyFunctions: {
+            rotateRight: null,
+            softDrop: null,
+            moveLeft: null,
+            moveRight: null,
+            hardDrop: null,
+            rotateLeft: null,
+            holdBlock: null
+        },
+        start: null
     };
-    controller.start = () => {
+    controller.modelUpdate = () => {
+        if (!controller.model.update()) {
+            controller.model.reset();
+        }
+    };
+    controller.viewUpdate = () => {
+        controller.view.board.update(controller.model.board.data, controller.model.board.shadow);
+        controller.view.next.update(controller.model.next.queue);
+        controller.view.hold.update(controller.model.hold.data);
+    };
+    controller.initial = () => {
         controller.model.board.clear();
         controller.view.board.update(controller.model.board.data, controller.model.board.shadow);
         controller.model.reset();
         controller.view.board.update(controller.model.board.data, controller.model.board.shadow);
-        controller.setModelTimer();
-        controller.viewTimer = setInterval(() => {
-            controller.view.board.update(controller.model.board.data, controller.model.board.shadow);
-        }, 10);
     };
     controller.setModelTimer = () => {
         if (controller.modelTimer)
             clearInterval(controller.modelTimer);
-        controller.modelTimer = setInterval(() => {
-            if (!controller.model.update()) {
-                controller.model.reset();
-            }
-        }, 500);
+        controller.modelTimer = setInterval(() => controller.modelUpdate(), 500);
     };
-    // UP : 38
-    // DOWN : 40
-    // LEFT : 37
-    // RIGHT : 39
-    controller.keyFunction = (e) => {
-        //clean(x, y);
-        console.log(e.keyCode);
-        if (e.keyCode == 38) {
-            controller.model.controller.key.rotateRight();
-        } else if (e.keyCode == 40) {
-            if (controller.model.controller.key.softDrop())
-                controller.setModelTimer();
-        } else if (e.keyCode == 37) {
-            controller.model.controller.key.moveLeft();
-        } else if (e.keyCode == 39) {
-            controller.model.controller.key.moveRigh();
-        } else if (e.keyCode == 32) {
-            if (!controller.model.controller.key.hardDrop())
-                controller.model.reset();
-            controller.setModelTimer();
-        } else if (e.keyCode == 90) {
-            controller.model.controller.key.rotateLeft();
+    controller.newKeyAction = (func = null, delay = 0, speed = 0) => {
+        var action = {
+            enable: false,
+            timer: null
+        };
+        if (func) {
+            action.enable = true;
+            func();
+            setTimeout(() => {
+                if (action.enable)
+                    action.timer = setInterval(() => {
+                        if (action.enable)
+                            func();
+                        else
+                            clearInterval(action.timer);
+                    }, speed);
+            }, delay);
         }
-        //draw(x, y);
-    }
-    document.onkeydown = controller.keyFunction;
+        return action;
+    };
+    controller.keyDown = (e) => {
+        if (!controller.keyState[e.keyCode])
+            controller.keyState[e.keyCode] = {
+                press: false,
+                keyActionBuffer: Array(5).fill().map(() => controller.newKeyAction())
+            };
+        if (!controller.keyState[e.keyCode].press) {
+            switch (e.keyCode) {
+                case controller.keyAction.rotateRight:
+                    controller.keyFunctions.rotateRight();
+                    break;
+                case controller.keyAction.softDrop:
+                    controller.keyState[e.keyCode].keyActionBuffer.pop();
+                    controller.keyState[e.keyCode].keyActionBuffer.unshift(
+                        controller.newKeyAction(
+                            controller.keyFunctions.softDrop,
+                            controller.blockDropDelay,
+                            controller.blockDropSpeed
+                        )
+                    );
+                    break;
+                case controller.keyAction.moveLeft:
+                    try {
+                        controller.keyState[controller.keyAction.moveRight].keyActionBuffer.forEach(value => { value.enable = false; });
+                    } catch (e) { }
+                    controller.keyState[e.keyCode].keyActionBuffer.pop();
+                    controller.keyState[e.keyCode].keyActionBuffer.unshift(
+                        controller.newKeyAction(
+                            controller.keyFunctions.moveLeft,
+                            controller.blockMoveDelay,
+                            controller.blockMoveSpeed
+                        )
+                    );
+                    break;
+                case controller.keyAction.moveRight:
+                    try {
+                        controller.keyState[controller.keyAction.moveLeft].keyActionBuffer.forEach(value => { value.enable = false; });
+                    } catch (e) { }
+                    controller.keyState[e.keyCode].keyActionBuffer.pop();
+                    controller.keyState[e.keyCode].keyActionBuffer.unshift(
+                        controller.newKeyAction(
+                            controller.keyFunctions.moveRight,
+                            controller.blockMoveDelay,
+                            controller.blockMoveSpeed
+                        )
+                    );
+                    break;
+                case controller.keyAction.hardDrop:
+                    controller.keyFunctions.hardDrop();
+                    break;
+                case controller.keyAction.rotateLeft:
+                    controller.keyFunctions.rotateLeft();
+                    break;
+                case controller.keyAction.holdBlock:
+                    controller.keyFunctions.holdBlock();
+                    break;
+            }
+        }
+        controller.keyState[e.keyCode].press = true;
+    };
+    controller.keyUp = (e) => {
+        if (controller.keyState[e.keyCode].press) {
+            switch (e.keyCode) {
+                case controller.keyAction.softDrop:
+                case controller.keyAction.moveLeft:
+                case controller.keyAction.moveRight:
+                    controller.keyState[e.keyCode].keyActionBuffer.forEach(value => { value.enable = false; });
+                    break;
+                case controller.keyAction.rotateRight:
+                case controller.keyAction.hardDrop:
+                case controller.keyAction.rotateLeft:
+                case controller.keyAction.holdBlock:
+                    break;
+            }
+        }
+        controller.keyState[e.keyCode].press = false;
+    };
+    controller.keyFunctions.rotateRight = () => {
+        controller.model.controller.key.rotateRight();
+    };
+    controller.keyFunctions.softDrop = () => {
+        if (controller.model.controller.key.softDrop())
+            controller.setModelTimer();
+    };
+    controller.keyFunctions.moveLeft = () => {
+        controller.model.controller.key.moveLeft();
+    };
+    controller.keyFunctions.moveRight = () => {
+        controller.model.controller.key.moveRigh();
+    };
+    controller.keyFunctions.hardDrop = () => {
+        if (!controller.model.controller.key.hardDrop())
+            controller.model.reset();
+        controller.setModelTimer();
+    };
+    controller.keyFunctions.rotateLeft = () => {
+        controller.model.controller.key.rotateLeft();
+    };
+    controller.keyFunctions.holdBlock = () => {
+        controller.model.controller.key.hold();
+    };
+    controller.start = () => {
+        controller.initial();
+        // model
+        controller.setModelTimer();
+        // view
+        controller.viewTimer = setInterval(() => controller.viewUpdate(), 10);
+    };
+    document.onkeydown = controller.keyDown;
+    document.onkeyup = controller.keyUp;
     return controller;
 }
 
-function CreateTetris(element) {
-    var canvas = null;
-    try { canvas = getCanvasElement(element); }
+function CreateTetris(board, next1, next2, next3, next4, next5, hold, style = "black") {
+    try {
+        board = getCanvasElement(board);
+        next1 = getCanvasElement(next1);
+        next2 = getCanvasElement(next2);
+        next3 = getCanvasElement(next3);
+        next4 = getCanvasElement(next4);
+        next5 = getCanvasElement(next5);
+        hold = getCanvasElement(hold);
+    }
     catch (e) { throw e; }
 
     const width = 10, height = 20;
 
+    function randomArray(src) {
+        for (var i = 0; i < src.length; i++) {
+            var ri = Math.floor(Math.random() * src.length);
+            src[ri] = [src[i], src[i] = src[ri]][0];
+        }
+        return src;
+    };
+
+    const block_texture = randomArray(
+        [
+            3, 4, 5,
+            6, 7, 9, 10,
+            11, 12, 13, 14,
+            15, 16, 17, 18,
+            19, 20, 21, 22,
+            23, 24
+        ]
+    )[0], shadow_texture = randomArray(
+        [
+            1, 24
+        ]
+    )[0];
+
     // MVC software design pattern
     var obj = {
         model: CreateModel(width, height),
-        view: CreateView(canvas, {
+        view: CreateView({
+            board: board,
+            next: [next1, next2, next3, next4, next5],
+            hold: hold
+        }, {
             block: {
+                texture: {
+                    block: "assets/" + style + "/texture" + block_texture + ".png",
+                    shadow: "assets/" + style + "/texture" + shadow_texture + "_shadow.png"
+                },
                 width: 32,
                 height: 32
             },
-            sx: 0,
-            sy: 0,
-            width: width + 8,
-            height: height + 8
+            board: {
+                sx: 3,
+                sy: 3,
+                width: width + 2,
+                height: height + 2
+            },
+            next: {
+                sx: 1,
+                sy: 1,
+                width: 4,
+                height: 4
+            },
+            hold: {
+                sx: 1,
+                sy: 1,
+                width: 4,
+                height: 4
+            }
         }),
         controller: null
     };

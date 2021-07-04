@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="assets/icon.png">
+    <title>JsTetris</title>
+    <script src="tetris.js"></script>
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+    <div id="main">
+        <div id="hold-div">
+            <strong>hold</strong>
+            <div>
+                <div>
+                    <canvas id="hold"></canvas>
+                </div>
+            </div>
+        </div>
+        <div id="board-div">
+            <canvas id="board"></canvas>
+        </div>
+        <div id="next-div">
+            <strong id="wtf">next</strong>
+            <div>
+                <div>
+                    <canvas id="next1"></canvas>
+                </div>
+            </div>
+            <div>
+                <div>
+                    <canvas id="next2"></canvas>
+                </div>
+            </div>
+            <div>
+                <div>
+                    <canvas id="next3"></canvas>
+                </div>
+            </div>
+            <div>
+                <div>
+                    <canvas id="next4"></canvas>
+                </div>
+            </div>
+            <div>
+                <div>
+                    <canvas id="next5"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        console.log(CreateTetris("board", "next1", "next2", "next3", "next4", "next5", "hold", "white"));
+    </script>
+
+</body>
+
+</html>

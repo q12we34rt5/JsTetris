@@ -1,0 +1,99 @@
+html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    display: flex;
+    flex-direction: row;
+    position: relative;
+    /*background-color: #002141;*/
+    background-color: #dde1e7;
+}
+
+#main {
+    --width: 90vw;
+    width: var(--width);
+    height: calc(1.0 * var(--width));
+    --max-width: 900px;
+    max-width: var(--max-width);
+    max-height: calc(1.0 * var(--max-width));
+    display: flex;
+    flex-direction: row;
+    margin: auto;
+    position: relative;
+}
+
+#main div {
+    font-family: monospace;
+    font-size: min(calc(var(--width) / 25), calc(var(--max-width) / 25));
+    /*color: rgb(225, 225, 225);*/
+    color: #31344b;
+    text-align: center;
+}
+
+#hold-div {
+    width: 12%;
+    margin: 5% auto auto auto;
+}
+
+#hold-div>strong {
+    line-height: 2;
+}
+
+#hold-div>div {
+    margin: auto auto 20% auto;
+    padding: 10%;
+    border-radius: 5px;
+    box-shadow: -5px -5px 5px #ffffffAf, 5px 5px 5px #0000001f;
+}
+
+#hold-div>div>div {
+    width: 100%;
+    padding-bottom: 100%;
+    height: 0;
+    border-radius: 5px;
+}
+
+#hold {
+    width: 100%;
+}
+
+#board-div {
+    width: 50%;
+    margin: auto;
+}
+
+#board {
+    width: 100%;
+    border: 10px solid #dde1e7;
+    border-radius: 10px;
+    box-shadow: -5px -5px 5px #ffffffAf, 5px 5px 5px #0000001f;
+}
+
+#next-div {
+    width: 12%;
+    height: 90%;
+    margin: 5% auto auto auto;
+    position: relative;
+}
+
+#next-div>strong {
+    line-height: 2;
+}
+
+#next-div canvas {
+    width: 100%;
+}
+
+#next-div>div {
+    margin: auto auto 20% auto;
+    padding: 10%;
+    border-radius: 5px;
+    box-shadow: -5px -5px 5px #ffffffAf, 5px 5px 5px #0000001f;
+}
+
+#next-div>div>div {
+    width: 100%;
+    padding-bottom: 100%;
+    height: 0;
+    border-radius: 5px;
+}
