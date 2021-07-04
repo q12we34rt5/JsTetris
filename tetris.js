@@ -162,8 +162,10 @@ function CreateView(canvases = {
     view.board.update = (data, shadow) => {
         if (!view.board.drawedBoundary && view.block.texture.ready) {
             for (var i = 0; i < view.board.height; i++)
-                for (var j = 0; j < view.board.width; j++)
+                for (var j = 0; j < view.board.width; j++) {
                     view.drawBlock(view.board.ctx, j, i, view.board.data_buf[i][j]);
+                    view.board.pasteShadow(j, i, view.board.shadow_buf[i][j]);
+                }
             view.board.drawedBoundary = true;
         }
         for (var i = 0; i < view.board.height; i++)
