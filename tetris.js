@@ -93,6 +93,7 @@ function CreateView(canvases = {
             width: kwargs.board.width,
             height: kwargs.board.height,
             pasteShadow: null,
+            drawedBoundary: false,
             initial: null,
             update: null
         },
@@ -159,6 +160,12 @@ function CreateView(canvases = {
         canvases.board.height = view.board.height * view.block.height;
     };
     view.board.update = (data, shadow) => {
+        if (!view.board.drawedBoundary && view.block.texture.ready) {
+            for (var i = 0; i < view.board.height; i++)
+                for (var j = 0; j < view.board.width; j++)
+                    view.drawBlock(view.board.ctx, j, i, view.board.data_buf[i][j]);
+            view.board.drawedBoundary = true;
+        }
         for (var i = 0; i < view.board.height; i++)
             for (var j = 0; j < view.board.width; j++) {
                 const ci = view.board.sy + i, cj = view.board.sx + j;
