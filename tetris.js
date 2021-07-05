@@ -168,19 +168,20 @@ function CreateView(canvases = {
                 }
             view.board.drawedBoundary = true;
         }
-        for (var i = 0; i < view.board.height; i++)
-            for (var j = 0; j < view.board.width; j++) {
-                const ci = view.board.sy + i, cj = view.board.sx + j;
-                if (view.board.data_buf[i][j] != data[ci][cj]) {
-                    view.board.data_buf[i][j] = data[ci][cj];
-                    view.drawBlock(view.board.ctx, j, i, view.board.data_buf[i][j]);
+        if (view.block.texture.ready)
+            for (var i = 0; i < view.board.height; i++)
+                for (var j = 0; j < view.board.width; j++) {
+                    const ci = view.board.sy + i, cj = view.board.sx + j;
+                    if (view.board.data_buf[i][j] != data[ci][cj]) {
+                        view.board.data_buf[i][j] = data[ci][cj];
+                        view.drawBlock(view.board.ctx, j, i, view.board.data_buf[i][j]);
+                    }
+                    if (view.board.shadow_buf[i][j] != shadow[ci][cj] && !data[ci][cj]) {
+                        view.board.shadow_buf[i][j] = shadow[ci][cj];
+                        view.drawBlock(view.board.ctx, j, i, view.board.data_buf[i][j]);
+                        view.board.pasteShadow(j, i, view.board.shadow_buf[i][j]);
+                    }
                 }
-                if (view.board.shadow_buf[i][j] != shadow[ci][cj] && !data[ci][cj]) {
-                    view.board.shadow_buf[i][j] = shadow[ci][cj];
-                    view.drawBlock(view.board.ctx, j, i, view.board.data_buf[i][j]);
-                    view.board.pasteShadow(j, i, view.board.shadow_buf[i][j]);
-                }
-            }
     };
     // initial next
     view.next.initial = () => {
@@ -203,15 +204,16 @@ function CreateView(canvases = {
                     }
             view.next.drawedBoundary = true;
         }
-        for (var k = 0; k < 5; k++)
-            for (var i = 0; i < 2; i++)
-                for (var j = 0; j < 4; j++) {
-                    const ci = i + 2, cj = j + 1;
-                    if (view.next.canvases[k].data_buf[ci][cj] != queue[k][i][j]) {
-                        view.next.canvases[k].data_buf[ci][cj] = queue[k][i][j];
-                        view.drawBlock(view.next.canvases[k].ctx, cj - view.next.sx, ci - view.next.sy, view.next.canvases[k].data_buf[ci][cj]);
+        if (view.block.texture.ready)
+            for (var k = 0; k < 5; k++)
+                for (var i = 0; i < 2; i++)
+                    for (var j = 0; j < 4; j++) {
+                        const ci = i + 2, cj = j + 1;
+                        if (view.next.canvases[k].data_buf[ci][cj] != queue[k][i][j]) {
+                            view.next.canvases[k].data_buf[ci][cj] = queue[k][i][j];
+                            view.drawBlock(view.next.canvases[k].ctx, cj - view.next.sx, ci - view.next.sy, view.next.canvases[k].data_buf[ci][cj]);
+                        }
                     }
-                }
     };
     for (var i = 0; i < 5; i++) {
         try {
@@ -237,14 +239,15 @@ function CreateView(canvases = {
                 }
             view.hold.drawedBoundary = true;
         }
-        for (var i = 0; i < 2; i++)
-            for (var j = 0; j < 4; j++) {
-                const ci = i + 2, cj = j + 1;
-                if (view.hold.data_buf[ci][cj] != data[i][j]) {
-                    view.hold.data_buf[ci][cj] = data[i][j];
-                    view.drawBlock(view.hold.ctx, cj - view.hold.sx, ci - view.hold.sy, view.hold.data_buf[ci][cj]);
+        if (view.block.texture.ready)
+            for (var i = 0; i < 2; i++)
+                for (var j = 0; j < 4; j++) {
+                    const ci = i + 2, cj = j + 1;
+                    if (view.hold.data_buf[ci][cj] != data[i][j]) {
+                        view.hold.data_buf[ci][cj] = data[i][j];
+                        view.drawBlock(view.hold.ctx, cj - view.hold.sx, ci - view.hold.sy, view.hold.data_buf[ci][cj]);
+                    }
                 }
-            }
     };
     // initial 
     view.board.initial();
@@ -944,7 +947,8 @@ function CreateController(model, view) {
             rotateLeft: null,
             holdBlock: null
         },
-        start: null
+        start: null,
+        destroy: null
     };
     controller.modelUpdate = () => {
         if (!controller.model.update()) {
@@ -1095,6 +1099,21 @@ function CreateController(model, view) {
         // view
         controller.viewTimer = setInterval(() => controller.viewUpdate(), 10);
     };
+    controller.destroy = () => {
+        if (controller.modelTimer) {
+            clearInterval(controller.modelTimer);
+            controller.modelTimer = null;
+        } else return false;
+        if (controller.viewTimer) {
+            clearInterval(controller.viewTimer);
+            controller.viewTimer = null;
+        } else return false;
+        for (key in controller.keyState)
+            controller.keyState[key].keyActionBuffer.forEach(value => { value.enable = false; });
+        document.onkeydown = null;
+        document.onkeyup = null;
+        return true;
+    };
     document.onkeydown = controller.keyDown;
     document.onkeyup = controller.keyUp;
     return controller;
@@ -1176,11 +1195,15 @@ function CreateTetris(board, next1, next2, next3, next4, next5, hold, style = "b
     };
     obj.controller = CreateController(obj.model, obj.view);
 
+    /*
+    var destroy = setInterval(() => {
+        if (obj.controller.destroy())
+            clearInterval(destroy);
+    }, 0);
+    */
+
     // start tetris
-    var run = setInterval(() => {
-        obj.controller.start();
-        clearInterval(run);
-    }, 100);
+    obj.controller.start();
 
     return obj;
 }
