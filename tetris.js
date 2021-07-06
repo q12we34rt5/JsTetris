@@ -108,13 +108,16 @@ function CreateView(canvases = {
         next: {
             canvases: Array(5).fill().map(() => {
                 return {
-                    canvas: null, ctx: null, data_buf: Array(6).fill().map(() => new Uint8Array(6).map(() => 0xFF))
+                    canvas: null,
+                    ctx: null,
+                    type: -1
                 };
             }),
             sx: kwargs.next.sx,
             sy: kwargs.next.sy,
             width: kwargs.next.width,
             height: kwargs.next.height,
+            boundarySrc: document.createElement("canvas"),
             drawedBoundary: false,
             initial: null,
             update: null
@@ -122,11 +125,12 @@ function CreateView(canvases = {
         hold: {
             canvas: null,
             ctx: null,
-            data_buf: Array(6).fill().map(() => new Uint8Array(6).map(() => 0xFF)),
+            type: -1,
             sx: kwargs.hold.sx,
             sy: kwargs.hold.sy,
             width: kwargs.hold.width,
             height: kwargs.hold.height,
+            boundarySrc: document.createElement("canvas"),
             drawedBoundary: false,
             initial: null,
             update: null
@@ -191,29 +195,34 @@ function CreateView(canvases = {
                 value.canvas.width = view.next.width * view.block.width;
                 value.canvas.height = view.next.height * view.block.height;
             });
-        }
-        catch (e) { }
+            view.next.boundarySrc.width = view.next.width * view.block.width;
+            view.next.boundarySrc.height = view.next.height * view.block.height;
+        } catch (e) { }
     };
     view.next.update = (queue) => {
         if (!view.next.drawedBoundary && view.block.texture.ready) {
-            for (var k = 0; k < 5; k++)
-                for (var i = 0; i < view.next.height; i++)
-                    for (var j = 0; j < view.next.width; j++) {
-                        const ci = view.next.sy + i, cj = view.next.sx + j;
-                        view.drawBlock(view.next.canvases[k].ctx, j, i, view.boundaryData[ci][cj]);
-                    }
+            var ctx = view.next.boundarySrc.getContext("2d");
+            for (var i = 0; i < view.next.height; i++)
+                for (var j = 0; j < view.next.width; j++) {
+                    const ci = view.next.sy + i, cj = view.next.sx + j;
+                    view.drawBlock(ctx, j, i, view.boundaryData[ci][cj]);
+                }
             view.next.drawedBoundary = true;
         }
         if (view.block.texture.ready)
-            for (var k = 0; k < 5; k++)
-                for (var i = 0; i < 2; i++)
-                    for (var j = 0; j < 4; j++) {
-                        const ci = i + 2, cj = j + 1;
-                        if (view.next.canvases[k].data_buf[ci][cj] != queue[k][i][j]) {
-                            view.next.canvases[k].data_buf[ci][cj] = queue[k][i][j];
-                            view.drawBlock(view.next.canvases[k].ctx, cj - view.next.sx, ci - view.next.sy, view.next.canvases[k].data_buf[ci][cj]);
-                        }
-                    }
+            for (var k = 0; k < 5; k++) {
+                if (view.next.canvases[k].type != queue[k].type) {
+                    view.next.canvases[k].type = queue[k].type;
+                    view.next.canvases[k].ctx.drawImage(view.next.boundarySrc, 0, 0);
+                    for (var i = 0; i < queue[k].height; i++)
+                        for (var j = 0; j < queue[k].width; j++)
+                            if (queue[k].data[i][j])
+                                view.drawBlock(view.next.canvases[k].ctx,
+                                    j + 1 - view.next.sx + queue[k].offset_x,
+                                    i + 2 - view.next.sy + queue[k].offset_y,
+                                    queue[k].data[i][j]);
+                }
+            }
     };
     for (var i = 0; i < 5; i++) {
         try {
@@ -227,27 +236,37 @@ function CreateView(canvases = {
     try { view.hold.ctx = canvases.hold.getContext("2d") }
     catch (e) { }
     view.hold.initial = () => {
-        view.hold.canvas.width = view.hold.width * view.block.width;
-        view.hold.canvas.height = view.hold.height * view.block.height;
+        try {
+            view.hold.canvas.width = view.hold.width * view.block.width;
+            view.hold.canvas.height = view.hold.height * view.block.height;
+        } catch (e) { }
+        view.hold.boundarySrc.width = view.hold.width * view.block.width;
+        view.hold.boundarySrc.height = view.hold.height * view.block.height;
     };
-    view.hold.update = (data) => {
+    view.hold.update = (block) => {
         if (!view.hold.drawedBoundary && view.block.texture.ready) {
+            var ctx = view.hold.boundarySrc.getContext("2d");
             for (var i = 0; i < view.hold.height; i++)
                 for (var j = 0; j < view.hold.width; j++) {
                     const ci = view.hold.sy + i, cj = view.hold.sx + j;
-                    view.drawBlock(view.hold.ctx, j, i, view.boundaryData[ci][cj]);
+                    view.drawBlock(ctx, j, i, view.boundaryData[ci][cj]);
                 }
+            view.hold.ctx.drawImage(view.hold.boundarySrc, 0, 0);
             view.hold.drawedBoundary = true;
         }
-        if (view.block.texture.ready)
-            for (var i = 0; i < 2; i++)
-                for (var j = 0; j < 4; j++) {
-                    const ci = i + 2, cj = j + 1;
-                    if (view.hold.data_buf[ci][cj] != data[i][j]) {
-                        view.hold.data_buf[ci][cj] = data[i][j];
-                        view.drawBlock(view.hold.ctx, cj - view.hold.sx, ci - view.hold.sy, view.hold.data_buf[ci][cj]);
-                    }
-                }
+        if (view.block.texture.ready) {
+            if (view.hold.type != block.type) {
+                view.hold.type = block.type;
+                view.hold.ctx.drawImage(view.hold.boundarySrc, 0, 0);
+                for (var i = 0; i < block.height; i++)
+                    for (var j = 0; j < block.width; j++)
+                        if (block.data[i][j])
+                            view.drawBlock(view.hold.ctx,
+                                j + 1 - view.hold.sx + block.offset_x,
+                                i + 2 - view.hold.sy + block.offset_y,
+                                block.data[i][j]);
+            }
+        }
     };
     // initial 
     view.board.initial();
@@ -257,7 +276,7 @@ function CreateView(canvases = {
 }
 
 function CreateModel(width, height) {
-    const sx = 4, sy = 4;
+    const sx = 6, sy = 6;
     var model = {
         block: {
             type: {
@@ -438,6 +457,15 @@ function CreateModel(width, height) {
                     ]
                 ]
             ],
+            centerOffset: [
+                [0.5, 0.0],
+                [0.5, 0.0],
+                [0.0, 0.0],
+                [0.5, 0.0],
+                [0.0, -0.5],
+                [0.5, 0.0],
+                [0.5, 0.0]
+            ],
             SRS: {
                 JLSTZ: [
                     [
@@ -538,11 +566,27 @@ function CreateModel(width, height) {
             shift: null
         },
         next: {
-            queue: [null, null, null, null, null],
+            queue: Array(5).fill().map(() => {
+                return {
+                    data: null,
+                    type: -1,
+                    width: 0,
+                    height: 0,
+                    offset_x: 0,
+                    offset_y: 0
+                };
+            }),
             update: null
         },
         hold: {
-            data: null,
+            block: {
+                data: null,
+                type: -1,
+                width: 0,
+                height: 0,
+                offset_x: 0,
+                offset_y: 0
+            },
             type: null,
             hasHolded: false,
             clear: null,
@@ -582,11 +626,9 @@ function CreateModel(width, height) {
                 rotate180: null,
                 hold: null
             },
-            initial: null,
             reset: null,
             update: null
         },
-        initial: null,
         reset: null,
         update: null
     };
@@ -608,8 +650,10 @@ function CreateModel(width, height) {
             model.board.data[model.board.sy - 1][j + model.board.sx] = 0x00;
             model.board.data[model.board.height + model.board.sy][j + model.board.sx] = 0x1A;
         }
+        model.board.data[model.board.sy][model.board.sx - 1] = 0x14;
         model.board.data[model.board.sy - 1][model.board.sx - 1] = 0x14;
         model.board.data[model.board.height + model.board.sy][model.board.sx - 1] = 0x13;
+        model.board.data[model.board.sy][model.board.width + model.board.sx] = 0x14;
         model.board.data[model.board.sy - 1][model.board.width + model.board.sx] = 0x14;
         model.board.data[model.board.height + model.board.sy][model.board.width + model.board.sx] = 0x19;
         // clear shadow
@@ -695,26 +739,37 @@ function CreateModel(width, height) {
     model.next.update = () => {
         for (var i = 0; i < 5; i++) {
             const type = model.controller.blockQueue[i];
-            model.next.queue[i] = model.block.data[type][0];
+            model.next.queue[i].data = model.block.data[type][0];
+            model.next.queue[i].type = type;
+            model.next.queue[i].width = model.block.size[type].width;
+            model.next.queue[i].height = model.block.size[type].height;
+            model.next.queue[i].offset_x = model.block.centerOffset[type][0];
+            model.next.queue[i].offset_y = model.block.centerOffset[type][1];
         }
     };
     // initial hold
     model.hold.clear = () => {
-        model.hold.data = Array(2).fill().map(() => new Uint8Array(4));
-        model.hold.type = -1;
+        model.hold.block.data = Array(2).fill().map(() => new Uint8Array(4));
+        model.hold.block.type = -1;
+        model.hold.block.width = 4;
+        model.hold.block.height = 2;
         model.hold.hasHolded = false;
     };
     model.hold.holdBlock = () => {
         if (model.hold.hasHolded)
             return false;
         model.board.eraseBlock(model.controller.x, model.controller.y, model.controller.type, model.controller.rot);
-        if (model.hold.type != -1) {
-            model.controller.blockQueue.unshift(model.hold.type);
+        if (model.hold.block.type != -1) {
+            model.controller.blockQueue.unshift(model.hold.block.type);
         }
-        model.hold.type = model.controller.type;
+        model.hold.block.type = model.controller.type;
         model.controller.generateBlock();
         model.hold.hasHolded = true;
-        model.hold.data = model.block.data[model.hold.type][0];
+        model.hold.block.data = model.block.data[model.hold.block.type][0];
+        model.hold.block.width = model.block.size[model.hold.block.type].width;
+        model.hold.block.height = model.block.size[model.hold.block.type].height;
+        model.hold.block.offset_x = model.block.centerOffset[model.hold.block.type][0];
+        model.hold.block.offset_y = model.block.centerOffset[model.hold.block.type][1];
         return true;
     };
     // initial controller
@@ -869,9 +924,6 @@ function CreateModel(width, height) {
     model.controller.key.hold = () => {
         return model.hold.holdBlock();
     };
-    model.controller.initial = () => {
-
-    };
     model.controller.reset = () => {
         model.controller.blockQueue =
             model.controller.randomArray(Array(7).fill().map((value, index) => index % 7)).concat(
@@ -894,9 +946,6 @@ function CreateModel(width, height) {
         return true;
     };
     // initial model
-    model.initial = () => {
-        model.controller.initial();
-    };
     model.reset = () => {
         model.board.clear();
         model.controller.reset();
@@ -911,44 +960,71 @@ function CreateModel(width, height) {
     return model;
 }
 
-function CreateController(model, view) {
+function CreateController(model, view, kwargs = {
+    DRR: 500,    // drop repeat rate
+    DAS: 100,    // delay auto shift
+    ARR: 50,     // auto repeat rate
+    SDDAS: 50,   // soft drop DAS
+    SDARR: 20,   // soft drop ARR
+    screenSpeed: 10,
+    keys: {
+        moveLeft: 37,
+        moveRight: 39,
+        softDrop: 40,
+        hardDrop: 32,
+        rotateLeft: 90,
+        rotateRight: 38,
+        rotate180: 65,
+        holdBlock: 67
+    }
+}) {
     var controller = {
         model: model,
         view: view,
+        DRR: kwargs.DRR,
+        DAS: kwargs.DAS,
+        ARR: kwargs.ARR,
+        SDDAS: kwargs.SDDAS,
+        SDARR: kwargs.SDARR,
+        screenSpeed: kwargs.screenSpeed,
+        initial: null,
         modelUpdate: null,
         viewUpdate: null,
-        initial: null,
-        setModelTimer: null,
         modelTimer: null,
         viewTimer: null,
+        setModelTimer: null,
         keyAction: {
-            rotateRight: 38,
-            softDrop: 40,
-            moveLeft: 37,
-            moveRight: 39,
-            hardDrop: 32,
-            rotateLeft: 90,
-            holdBlock: 67
+            moveLeft: kwargs.keys.moveLeft,
+            moveRight: kwargs.keys.moveRight,
+            softDrop: kwargs.keys.softDrop,
+            hardDrop: kwargs.keys.hardDrop,
+            rotateLeft: kwargs.keys.rotateLeft,
+            rotateRight: kwargs.keys.rotateRight,
+            rotate180: kwargs.keys.rotate180,
+            holdBlock: kwargs.keys.holdBlock
         },
         keyState: {},
-        blockMoveDelay: 100,
-        blockMoveSpeed: 50,
-        blockDropDelay: 50,
-        blockDropSpeed: 20,
         newKeyAction: null,
         keyDown: null,
         keyUp: null,
         keyFunctions: {
-            rotateRight: null,
-            softDrop: null,
             moveLeft: null,
             moveRight: null,
+            softDrop: null,
             hardDrop: null,
             rotateLeft: null,
+            rotateRight: null,
+            rotate180: null,
             holdBlock: null
         },
         start: null,
         destroy: null
+    };
+    controller.initial = () => {
+        controller.model.board.clear();
+        controller.view.board.update(controller.model.board.data, controller.model.board.shadow);
+        controller.model.reset();
+        controller.view.board.update(controller.model.board.data, controller.model.board.shadow);
     };
     controller.modelUpdate = () => {
         if (!controller.model.update()) {
@@ -958,18 +1034,12 @@ function CreateController(model, view) {
     controller.viewUpdate = () => {
         controller.view.board.update(controller.model.board.data, controller.model.board.shadow);
         controller.view.next.update(controller.model.next.queue);
-        controller.view.hold.update(controller.model.hold.data);
-    };
-    controller.initial = () => {
-        controller.model.board.clear();
-        controller.view.board.update(controller.model.board.data, controller.model.board.shadow);
-        controller.model.reset();
-        controller.view.board.update(controller.model.board.data, controller.model.board.shadow);
+        controller.view.hold.update(controller.model.hold.block);
     };
     controller.setModelTimer = () => {
         if (controller.modelTimer)
             clearInterval(controller.modelTimer);
-        controller.modelTimer = setInterval(() => controller.modelUpdate(), 500);
+        controller.modelTimer = setInterval(() => controller.modelUpdate(), controller.DRR);
     };
     controller.newKeyAction = (func = null, delay = 0, speed = 0) => {
         var action = {
@@ -999,19 +1069,6 @@ function CreateController(model, view) {
             };
         if (!controller.keyState[e.keyCode].press) {
             switch (e.keyCode) {
-                case controller.keyAction.rotateRight:
-                    controller.keyFunctions.rotateRight();
-                    break;
-                case controller.keyAction.softDrop:
-                    controller.keyState[e.keyCode].keyActionBuffer.pop();
-                    controller.keyState[e.keyCode].keyActionBuffer.unshift(
-                        controller.newKeyAction(
-                            controller.keyFunctions.softDrop,
-                            controller.blockDropDelay,
-                            controller.blockDropSpeed
-                        )
-                    );
-                    break;
                 case controller.keyAction.moveLeft:
                     try {
                         controller.keyState[controller.keyAction.moveRight].keyActionBuffer.forEach(value => { value.enable = false; });
@@ -1020,8 +1077,8 @@ function CreateController(model, view) {
                     controller.keyState[e.keyCode].keyActionBuffer.unshift(
                         controller.newKeyAction(
                             controller.keyFunctions.moveLeft,
-                            controller.blockMoveDelay,
-                            controller.blockMoveSpeed
+                            controller.DAS,
+                            controller.ARR
                         )
                     );
                     break;
@@ -1033,8 +1090,18 @@ function CreateController(model, view) {
                     controller.keyState[e.keyCode].keyActionBuffer.unshift(
                         controller.newKeyAction(
                             controller.keyFunctions.moveRight,
-                            controller.blockMoveDelay,
-                            controller.blockMoveSpeed
+                            controller.DAS,
+                            controller.ARR
+                        )
+                    );
+                    break;
+                case controller.keyAction.softDrop:
+                    controller.keyState[e.keyCode].keyActionBuffer.pop();
+                    controller.keyState[e.keyCode].keyActionBuffer.unshift(
+                        controller.newKeyAction(
+                            controller.keyFunctions.softDrop,
+                            controller.SDDAS,
+                            controller.SDARR
                         )
                     );
                     break;
@@ -1043,6 +1110,12 @@ function CreateController(model, view) {
                     break;
                 case controller.keyAction.rotateLeft:
                     controller.keyFunctions.rotateLeft();
+                    break;
+                case controller.keyAction.rotateRight:
+                    controller.keyFunctions.rotateRight();
+                    break;
+                case controller.keyAction.rotate180:
+                    controller.keyFunctions.rotate180();
                     break;
                 case controller.keyAction.holdBlock:
                     controller.keyFunctions.holdBlock();
@@ -1054,32 +1127,30 @@ function CreateController(model, view) {
     controller.keyUp = (e) => {
         if (controller.keyState[e.keyCode].press) {
             switch (e.keyCode) {
-                case controller.keyAction.softDrop:
                 case controller.keyAction.moveLeft:
                 case controller.keyAction.moveRight:
+                case controller.keyAction.softDrop:
                     controller.keyState[e.keyCode].keyActionBuffer.forEach(value => { value.enable = false; });
                     break;
-                case controller.keyAction.rotateRight:
                 case controller.keyAction.hardDrop:
                 case controller.keyAction.rotateLeft:
+                case controller.keyAction.rotateRight:
+                case controller.keyAction.rotate180:
                 case controller.keyAction.holdBlock:
                     break;
             }
         }
         controller.keyState[e.keyCode].press = false;
     };
-    controller.keyFunctions.rotateRight = () => {
-        controller.model.controller.key.rotateRight();
-    };
-    controller.keyFunctions.softDrop = () => {
-        if (controller.model.controller.key.softDrop())
-            controller.setModelTimer();
-    };
     controller.keyFunctions.moveLeft = () => {
         controller.model.controller.key.moveLeft();
     };
     controller.keyFunctions.moveRight = () => {
         controller.model.controller.key.moveRigh();
+    };
+    controller.keyFunctions.softDrop = () => {
+        if (controller.model.controller.key.softDrop())
+            controller.setModelTimer();
     };
     controller.keyFunctions.hardDrop = () => {
         if (!controller.model.controller.key.hardDrop())
@@ -1089,6 +1160,12 @@ function CreateController(model, view) {
     controller.keyFunctions.rotateLeft = () => {
         controller.model.controller.key.rotateLeft();
     };
+    controller.keyFunctions.rotateRight = () => {
+        controller.model.controller.key.rotateRight();
+    };
+    controller.keyFunctions.rotate180 = () => {
+        controller.model.controller.key.rotate180();
+    };
     controller.keyFunctions.holdBlock = () => {
         controller.model.controller.key.hold();
     };
@@ -1097,7 +1174,7 @@ function CreateController(model, view) {
         // model
         controller.setModelTimer();
         // view
-        controller.viewTimer = setInterval(() => controller.viewUpdate(), 10);
+        controller.viewTimer = setInterval(() => controller.viewUpdate(), controller.screenSpeed);
     };
     controller.destroy = () => {
         if (controller.modelTimer) {
@@ -1110,8 +1187,8 @@ function CreateController(model, view) {
         } else return false;
         for (key in controller.keyState)
             controller.keyState[key].keyActionBuffer.forEach(value => { value.enable = false; });
-        document.onkeydown = null;
-        document.onkeyup = null;
+        // document.onkeydown = null;
+        // document.onkeyup = null;
         return true;
     };
     document.onkeydown = controller.keyDown;
@@ -1119,7 +1196,30 @@ function CreateController(model, view) {
     return controller;
 }
 
-function CreateTetris(board, next1, next2, next3, next4, next5, hold, style = "black") {
+function CreateTetris(board, next1, next2, next3, next4, next5, hold, style = "white", kwargs = {
+    control: {
+        DRR: 500,
+        DAS: 100,
+        ARR: 50,
+        SDDAS: 50,
+        SDARR: 20,
+        screenSpeed: 10,
+        keys: {
+            moveLeft: 37,
+            moveRight: 39,
+            softDrop: 40,
+            hardDrop: 32,
+            rotateLeft: 90,
+            rotateRight: 38,
+            rotate180: 65,
+            holdBlock: 67
+        },
+        details: {
+            width: 10,
+            height: 20
+        }
+    }
+}) {
     try {
         board = getCanvasElement(board);
         next1 = getCanvasElement(next1);
@@ -1130,9 +1230,6 @@ function CreateTetris(board, next1, next2, next3, next4, next5, hold, style = "b
         hold = getCanvasElement(hold);
     }
     catch (e) { throw e; }
-
-    const width = 10, height = 20;
-
     function randomArray(src) {
         for (var i = 0; i < src.length; i++) {
             var ri = Math.floor(Math.random() * src.length);
@@ -1140,7 +1237,6 @@ function CreateTetris(board, next1, next2, next3, next4, next5, hold, style = "b
         }
         return src;
     };
-
     const block_texture = randomArray(
         [
             3, 4, 5,
@@ -1155,10 +1251,9 @@ function CreateTetris(board, next1, next2, next3, next4, next5, hold, style = "b
             1, 24
         ]
     )[0];
-
     // MVC software design pattern
     var obj = {
-        model: CreateModel(width, height),
+        model: CreateModel(kwargs.control.details.width, kwargs.control.details.height),
         view: CreateView({
             board: board,
             next: [next1, next2, next3, next4, next5],
@@ -1173,10 +1268,10 @@ function CreateTetris(board, next1, next2, next3, next4, next5, hold, style = "b
                 height: 32
             },
             board: {
-                sx: 3,
-                sy: 3,
-                width: width + 2,
-                height: height + 2
+                sx: 5,
+                sy: 6,
+                width: kwargs.control.details.width + 2,
+                height: kwargs.control.details.height + 1
             },
             next: {
                 sx: 1,
@@ -1191,19 +1286,18 @@ function CreateTetris(board, next1, next2, next3, next4, next5, hold, style = "b
                 height: 4
             }
         }),
-        controller: null
+        controller: null,
+        destroy: null
     };
-    obj.controller = CreateController(obj.model, obj.view);
-
-    /*
-    var destroy = setInterval(() => {
-        if (obj.controller.destroy())
-            clearInterval(destroy);
-    }, 0);
-    */
-
+    obj.controller = CreateController(obj.model, obj.view, kwargs.control);
+    // destructor
+    obj.destroy = () => {
+        var destroyer = setInterval(() => {
+            if (obj.controller.destroy())
+                clearInterval(destroyer);
+        }, 0);
+    }
     // start tetris
     obj.controller.start();
-
     return obj;
 }

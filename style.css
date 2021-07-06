@@ -1,4 +1,5 @@
-html, body {
+html,
+body {
     width: 100%;
     height: 100%;
     margin: 0;
@@ -13,7 +14,7 @@ html, body {
     --width: 90vw;
     width: var(--width);
     height: calc(1.0 * var(--width));
-    --max-width: 900px;
+    --max-width: 840px;
     max-width: var(--max-width);
     max-height: calc(1.0 * var(--max-width));
     display: flex;
@@ -22,78 +23,212 @@ html, body {
     position: relative;
 }
 
-#main div {
-    font-family: monospace;
-    font-size: min(calc(var(--width) / 25), calc(var(--max-width) / 25));
-    /*color: rgb(225, 225, 225);*/
-    color: #31344b;
+#left-div {
+    width: 12%;
+    height: 100%;
+    margin: 5% auto auto auto;
+    position: relative;
     text-align: center;
 }
 
-#hold-div {
-    width: 12%;
-    margin: 5% auto auto auto;
+.title-style {
+    font-family: monospace;
+    font-size: min(calc(var(--width) / 25), calc(var(--max-width) / 25));
+    color: #31344b;
+    margin: 20% auto 20% auto;
 }
 
-#hold-div>strong {
-    line-height: 2;
-}
-
-#hold-div>div {
+.block-style {
     margin: auto auto 20% auto;
-    padding: 10%;
+    padding: 5%;
     border-radius: 5px;
     box-shadow: -5px -5px 5px #ffffffAf, 5px 5px 5px #0000001f;
 }
 
-#hold-div>div>div {
+.block-style>div {
     width: 100%;
     padding-bottom: 100%;
     height: 0;
     border-radius: 5px;
 }
 
-#hold {
+.block-style>div>canvas {
     width: 100%;
 }
 
 #board-div {
-    width: 50%;
+    width: 55%;
     margin: auto;
+    position: relative;
 }
 
 #board {
-    width: 100%;
+    width: calc(100% - 20px);
     border: 10px solid #dde1e7;
     border-radius: 10px;
     box-shadow: -5px -5px 5px #ffffffAf, 5px 5px 5px #0000001f;
 }
 
-#next-div {
+#right-div {
     width: 12%;
     height: 90%;
     margin: 5% auto auto auto;
     position: relative;
+    text-align: center;
 }
 
-#next-div>strong {
-    line-height: 2;
-}
-
-#next-div canvas {
-    width: 100%;
-}
-
-#next-div>div {
-    margin: auto auto 20% auto;
-    padding: 10%;
+#setting-panel-container {
+    --panel-thumbnail-width: 30px;
+    --panel-thumbnail-height: 30px;
+    --panel-width: 300px;
+    --panel-height: 605px;
+    width: var(--panel-thumbnail-width);
+    height: var(--panel-thumbnail-height);
+    margin: 10px;
     border-radius: 5px;
+    border: 5px solid #dde1e7;
+    box-shadow:
+        2px 2px 2px #dde1e7,
+        -2px 2px 2px #dde1e7,
+        2px -2px 2px #dde1e7,
+        -2px -2px 2px #dde1e7;
+    background-color: #dde1e7;
+    position: absolute;
+    z-index: 1;
+    transition-duration: 0.5s;
+}
+
+#setting-panel-container:hover {
+    width: var(--panel-width);
+    height: var(--panel-height);
+}
+
+#setting-panel {
+    width: 100%;
+    height: 100%;
+    font-family: monospace;
+    font-size: min(calc(var(--width) / 40), calc(var(--max-width) / 40));
+    color: #31344b;
     box-shadow: -5px -5px 5px #ffffffAf, 5px 5px 5px #0000001f;
+    border-radius: 5px;
+    text-align: left;
+    overflow: hidden;
 }
 
-#next-div>div>div {
-    width: 100%;
-    padding-bottom: 100%;
-    height: 0;
+#setting-title {
+    width: var(--panel-thumbnail-width);
+    height: var(--panel-thumbnail-height);
+    display: flex;
+}
+
+#setting-title>i {
+    margin: auto;
+}
+
+.setting-list {
+    width: 110px;
+    height: 30px;
+    margin-left: 15px;
+    margin-top: 15px;
     border-radius: 5px;
+    transition-duration: 0.5s;
+    box-shadow:
+        inset 0px 0px 0px #ffffff00,
+        inset 0px 0px 0px #00000000,
+        -5px -5px 5px #ffffffAf,
+        5px 5px 5px #0000001f;
+    overflow: hidden;
+}
+
+.setting-list:hover {
+    width: 270px;
+    height: 410px;
+    box-shadow:
+        inset -5px -5px 5px #ffffffAf,
+        inset 5px 5px 5px #0000001f,
+        0px 0px 0px #ffffff00,
+        0px 0px 0px #00000000;
+}
+
+.setting-list-title {
+    font-size: 20px;
+    line-height: 1.5;
+    margin: auto;
+}
+
+.setting-input {
+    width: 230px;
+    height: 35px;
+    margin-left: 20px;
+    margin-top: 10px;
+    margin-bottom: 5px;
+    font-size: 18px;
+    font-family: monospace;
+    color: #31344b;
+    border-radius: 5px;
+    display: flex;
+    box-shadow:
+        -5px -5px 5px #ffffffAf,
+        5px 5px 5px #0000001f;
+}
+
+.setting-input>p {
+    margin: auto;
+}
+
+.setting-input>input {
+    width: 60px;
+    height: 25px;
+    margin: auto;
+    font-size: 18px;
+    font-family: monospace;
+    text-align: center;
+    color: #31344b;
+    background: #dde1e7;
+    border: 0px;
+    border-radius: 5px;
+    transition-duration: 0.2s;
+    box-shadow:
+        inset 0px 0px 0px #ffffff00,
+        inset 0px 0px 0px #00000000,
+        -5px -5px 5px #ffffffAf,
+        5px 5px 5px #0000001f;
+}
+
+.setting-input>input:focus {
+    box-shadow:
+        inset -5px -5px 5px #ffffffAf,
+        inset 5px 5px 5px #0000001f,
+        0px 0px 0px #ffffff00,
+        0px 0px 0px #00000000;
+    outline: 0px;
+}
+
+#save-changes {
+    width: 110px;
+    height: 30px;
+    margin-left: 15px;
+    margin-top: 15px;
+    background: #dde1e7;
+    border-radius: 5px;
+    border: 0px;
+    font-size: 20px;
+    font-family: monospace;
+    text-align: left;
+    line-height: 1.5;
+    color: #31344b;
+    box-shadow:
+        inset 0px 0px 0px #ffffff00,
+        inset 0px 0px 0px #00000000,
+        -5px -5px 5px #ffffffAf,
+        5px 5px 5px #0000001f;
+    overflow: hidden;
+}
+
+#save-changes:active {
+    box-shadow:
+        inset -5px -5px 5px #ffffffAf,
+        inset 5px 5px 5px #0000001f,
+        0px 0px 0px #ffffff00,
+        0px 0px 0px #00000000;
 }
