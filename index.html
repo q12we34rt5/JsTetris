@@ -7,6 +7,8 @@
     <title>JsTetris</title>
     <script src="tetris.js"></script>
     <link rel="stylesheet" href="style.css" />
+    <script src="gallery.js"></script>
+    <link rel="stylesheet" href="gallery.css" />
     <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css"
         integrity="sha384-AYmEC3Yw5cVb3ZcuHtOA93w35dYTsvhLPVnYs9eStHfGJvOvKxVfELGroGkvsg+p" crossorigin="anonymous" />
 </head>
@@ -360,12 +362,157 @@
             </div>
             <div class="setting-list">
                 <div class="setting-list-title">&ensp;Skin</div>
+                <div id="block-texture-selector" class="gallery">
+                    <div class="gallery-page-scoller-action-left-trigger">
+                        <div class="gallery-page-scoller-action-left">
+                            <div class="left-arrow"></div>
+                        </div>
+                    </div>
+                    <div class="gallery-page-scoller-action-right-trigger">
+                        <div class="gallery-page-scoller-action-right">
+                            <div class="right-arrow"></div>
+                        </div>
+                    </div>
+                    <div class="gallery-page-container">
+                        <div class="gallery-page-scoller">
+                            <!-- add page here
+                            <div class="gallery-page"></div>
+                            -->
+                        </div>
+                    </div>
+                </div>
+                <div id="block-shadow-selector" class="gallery">
+                    <div class="gallery-page-scoller-action-left-trigger">
+                        <div class="gallery-page-scoller-action-left">
+                            <div class="left-arrow"></div>
+                        </div>
+                    </div>
+                    <div class="gallery-page-scoller-action-right-trigger">
+                        <div class="gallery-page-scoller-action-right">
+                            <div class="right-arrow"></div>
+                        </div>
+                    </div>
+                    <div class="gallery-page-container">
+                        <div class="gallery-page-scoller">
+                            <!-- add page here
+                            <div class="gallery-page"></div>
+                            -->
+                        </div>
+                    </div>
+                </div>
+                <script type="text/javascript">
+                    function parseElement(html) {
+                        var htmlContainer = document.createElement('html');
+                        htmlContainer.innerHTML = html;
+                        return htmlContainer.childNodes[1].childNodes[0];
+                    }
+                    function makeGalleryPage(title, src) {
+                        var elementString = [
+                            '<div class="gallery-page">',
+                            '<div style="',
+                            'margin: 5px auto auto 10px;',
+                            'font-size: 20px;',
+                            'font-family: monospace;',
+                            'color: #31344b;',
+                            '">',
+                            title,
+                            '</div>',
+                            '<canvas style="',
+                            'width: 184px;',
+                            'margin-top: 20px;',
+                            'margin-left: 10px;',
+                            'border: 3px solid #dde1e7;',
+                            'border-radius: 5px;',
+                            'box-shadow: -5px -5px 5px #ffffffAf, 5px 5px 5px #0000001f;',
+                            '">',
+                            '</canvas>',
+                            '</div>'
+                        ].join("\n");
+                        var page = parseElement(elementString);
+                        page.texture_src = src;
+                        var texture = GetTexture(src);
+                        var canvas = page.querySelector("canvas");
+                        const data = [
+                            [0x74, 0x46, 0x4A, 0x48, 0x32, 0x3C, 0x72, 0x7A, 0x7A, 0x78],
+                            [0x75, 0x41, 0x56, 0x5C, 0x94, 0x33, 0x38, 0x82, 0x8A, 0x8C],
+                            [0x75, 0x84, 0x53, 0x59, 0x97, 0x98, 0x66, 0x68, 0x94, 0x81],
+                            [0x71, 0x83, 0x8A, 0x88, 0x91, 0x62, 0x69, 0x92, 0x9B, 0x98]
+                        ];
+                        var initialTimer = setInterval(() => {
+                            if (texture.ready) {
+                                canvas.width = texture.width * 10;
+                                canvas.height = texture.height * 4;
+                                var ctx = canvas.getContext("2d");
+                                for (var i = 0; i < 4; i++)
+                                    for (var j = 0; j < 10; j++) {
+                                        ctx.drawImage(texture.canvas,
+                                            texture.width * (data[i][j] & 0x0F),
+                                            texture.height * (data[i][j] >> 4),
+                                            texture.width, texture.height,
+                                            texture.width * j, texture.height * i,
+                                            texture.width, texture.height);
+                                    }
+                                clearInterval(initialTimer);
+                            }
+                        }, 10);
+                        return page;
+                    }
+                    const block_textures = [
+                        ["Block1", "assets/white/texture3.png"],
+                        ["Block2", "assets/white/texture4.png"],
+                        ["Block3", "assets/white/texture5.png"],
+                        ["Block4", "assets/white/texture6.png"],
+                        ["Block5", "assets/white/texture7.png"],
+                        ["Block6", "assets/white/texture9.png"],
+                        ["Block7", "assets/white/texture10.png"],
+                        ["Block8", "assets/white/texture11.png"],
+                        ["Block9", "assets/white/texture12.png"],
+                        ["Block10", "assets/white/texture13.png"],
+                        ["Block11", "assets/white/texture14.png"],
+                        ["Block12", "assets/white/texture15.png"],
+                        ["Block13", "assets/white/texture16.png"],
+                        ["Block14", "assets/white/texture17.png"],
+                        ["Block15", "assets/white/texture18.png"],
+                        ["Block16", "assets/white/texture19.png"],
+                        ["Block17", "assets/white/texture20.png"],
+                        ["Block18", "assets/white/texture21.png"],
+                        ["Block19", "assets/white/texture22.png"],
+                        ["Block20", "assets/white/texture23.png"],
+                        ["Block21", "assets/white/texture24.png"]
+                    ];
+                    const block_shadow = [
+                        ["Shadow1", "assets/white/texture1_shadow.png"],
+                        ["Shadow2", "assets/white/texture24_shadow.png"]
+                    ];
+                    var block_texture_list = document.querySelector("#block-texture-selector .gallery-page-scoller");
+                    var block_shadow_list = document.querySelector("#block-shadow-selector .gallery-page-scoller");
+                    block_textures.forEach(texture => {
+                        var newNode = makeGalleryPage(texture[0], texture[1]);
+                        block_texture_list.appendChild(newNode);
+                    });
+                    block_shadow.forEach(texture => {
+                        var newNode = makeGalleryPage(texture[0], texture[1]);
+                        block_shadow_list.appendChild(newNode);
+                    });
+                    var block_texture_selector = new makeGallery("#block-texture-selector");
+                    var block_shadow_selector = new makeGallery("#block-shadow-selector");
+                    const init_block_texture = 4;
+                    const init_block_shadow = 1;
+                    for (var i = 0; i < init_block_texture - 1; i++) block_texture_selector.jsMoveNext();
+                    for (var i = 0; i < init_block_shadow - 1; i++) block_shadow_selector.jsMoveNext();
+                </script>
             </div>
             <div id="save-changes" onclick="saveChanges()">&ensp;Save</div>
             <script>
                 var tetris = null;
                 var keyInputList = document.querySelectorAll("#keys-setting input");
                 var gameInputList = document.querySelectorAll("#game-setting input");
+
+                var block_texture_list_pages = document.querySelectorAll("#block-texture-selector .gallery-page-scoller .gallery-page");
+                var block_shadow_list_pages = document.querySelectorAll("#block-shadow-selector .gallery-page-scoller .gallery-page");
+                var get_block_texture_src = () => block_texture_list_pages[block_texture_selector.current_gallery_page].texture_src;
+                var get_block_shadow_src = () => block_shadow_list_pages[block_shadow_selector.current_gallery_page].texture_src;
+
                 function saveChanges() {
                     var kwargs = {
                         control: {
@@ -384,16 +531,18 @@
                                 rotateRight: parseInt(keyInputList[5].getAttribute("data-keyCode")),
                                 rotate180: parseInt(keyInputList[6].getAttribute("data-keyCode")),
                                 holdBlock: parseInt(keyInputList[7].getAttribute("data-keyCode"))
-                            },
-                            details: {
-                                width: parseInt(gameInputList[6].value),
-                                height: parseInt(gameInputList[7].value)
                             }
+                        },
+                        details: {
+                            width: 10,
+                            height: 20,
+                            block_texture_src: get_block_texture_src(),
+                            block_shadow_src: get_block_shadow_src()
                         }
                     };
                     console.log(kwargs);
                     tetris.destroy();
-                    tetris = CreateTetris("board", "next1", "next2", "next3", "next4", "next5", "hold", "white", kwargs);
+                    tetris = CreateTetris("board", "next1", "next2", "next3", "next4", "next5", "hold", kwargs);
                     console.log(tetris);
                 }
             </script>
@@ -440,12 +589,10 @@
             </div>
         </div>
     </div>
-
     <script>
-        tetris = CreateTetris("board", "next1", "next2", "next3", "next4", "next5", "hold", "white");
+        tetris = CreateTetris("board", "next1", "next2", "next3", "next4", "next5", "hold");
         console.log(tetris);
     </script>
-
 </body>
 
 </html>

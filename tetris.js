@@ -1196,7 +1196,7 @@ function CreateController(model, view, kwargs = {
     return controller;
 }
 
-function CreateTetris(board, next1, next2, next3, next4, next5, hold, style = "white", kwargs = {
+function CreateTetris(board, next1, next2, next3, next4, next5, hold, kwargs = {
     control: {
         DRR: 500,
         DAS: 100,
@@ -1214,10 +1214,12 @@ function CreateTetris(board, next1, next2, next3, next4, next5, hold, style = "w
             rotate180: 65,
             holdBlock: 67
         },
-        details: {
-            width: 10,
-            height: 20
-        }
+    },
+    details: {
+        width: 10,
+        height: 20,
+        block_texture_src: "assets/white/texture6.png",
+        block_shadow_src: "assets/white/texture1_shadow.png"
     }
 }) {
     try {
@@ -1230,30 +1232,10 @@ function CreateTetris(board, next1, next2, next3, next4, next5, hold, style = "w
         hold = getCanvasElement(hold);
     }
     catch (e) { throw e; }
-    function randomArray(src) {
-        for (var i = 0; i < src.length; i++) {
-            var ri = Math.floor(Math.random() * src.length);
-            src[ri] = [src[i], src[i] = src[ri]][0];
-        }
-        return src;
-    };
-    const block_texture = randomArray(
-        [
-            3, 4, 5,
-            6, 7, 9, 10,
-            11, 12, 13, 14,
-            15, 16, 17, 18,
-            19, 20, 21, 22,
-            23, 24
-        ]
-    )[0], shadow_texture = randomArray(
-        [
-            1, 24
-        ]
-    )[0];
     // MVC software design pattern
+    console.log(kwargs.details.block_texture_src);
     var obj = {
-        model: CreateModel(kwargs.control.details.width, kwargs.control.details.height),
+        model: CreateModel(kwargs.details.width, kwargs.details.height),
         view: CreateView({
             board: board,
             next: [next1, next2, next3, next4, next5],
@@ -1261,8 +1243,8 @@ function CreateTetris(board, next1, next2, next3, next4, next5, hold, style = "w
         }, {
             block: {
                 texture: {
-                    block: "assets/" + style + "/texture" + block_texture + ".png",
-                    shadow: "assets/" + style + "/texture" + shadow_texture + "_shadow.png"
+                    block: kwargs.details.block_texture_src,
+                    shadow: kwargs.details.block_shadow_src
                 },
                 width: 32,
                 height: 32
@@ -1270,8 +1252,8 @@ function CreateTetris(board, next1, next2, next3, next4, next5, hold, style = "w
             board: {
                 sx: 5,
                 sy: 6,
-                width: kwargs.control.details.width + 2,
-                height: kwargs.control.details.height + 1
+                width: kwargs.details.width + 2,
+                height: kwargs.details.height + 1
             },
             next: {
                 sx: 1,

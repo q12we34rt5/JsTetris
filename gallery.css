@@ -1,0 +1,102 @@
+:root {
+    --gallery-width: 230px;
+    --gallery-height: 170px;
+    --gallery-page-width: 210px;
+    --gallery-page-height: 150px;
+    --gallery-page-gap: 20px;
+}
+
+.gallery {
+    width: var(--gallery-width);
+    height: var(--gallery-height);
+    margin-left: 20px;
+    margin-top: 10px;
+    margin-bottom: 5px;
+    display: flex;
+    overflow: hidden;
+    position: relative;
+    box-shadow: inset -5px -5px 5px #ffffffaf, inset 5px 5px 5px #0000002f;
+}
+
+.gallery {
+    border-radius: 5px;
+}
+
+.gallery-page-container {
+    width: var(--gallery-page-width);
+    height: var(--gallery-page-height);
+    margin: auto;
+}
+
+.gallery-page-scoller {
+    height: var(--gallery-page-height);
+    transition: 1s;
+}
+
+.gallery-page {
+    width: var(--gallery-page-width);
+    height: var(--gallery-page-height);
+    float: left;
+    margin-right: var(--gallery-page-gap);
+    border-radius: 5px;
+    background-color: #dde1e7;
+    box-shadow: -5px -5px 5px #ffffffaf, 5px 5px 5px #0000002f, inset -5px -5px 5px #ffffff00, inset 5px 5px 5px #00000000;
+    overflow: hidden;
+}
+
+.gallery-page-scoller-action-left-trigger {
+    margin-left: -5px;
+    margin-top: calc((var(--gallery-height) - 40px) / 2);
+}
+
+.gallery-page-scoller-action-right-trigger {
+    margin-left: calc(var(--gallery-width) - 25px);
+    margin-top: calc((var(--gallery-height) - 40px) / 2);
+}
+
+.gallery-page-scoller-action-left, .gallery-page-scoller-action-right {
+    width: 30px;
+    height: 40px;
+    border-radius: 5px;
+    background-color: #dde1e7;
+    display: flex;
+    visibility: hidden;
+    transition: 0.2s;
+    box-shadow: -2px -2px 2px #ffffffaf, 2px 2px 2px #0000002f;
+}
+
+.gallery-page-scoller-action-left-trigger, .gallery-page-scoller-action-right-trigger {
+    width: 30px;
+    height: 40px;
+    display: flex;
+    position: absolute;
+    z-index: 1000;
+}
+
+.gallery-page-scoller-action-left-trigger:hover>.gallery-page-scoller-action-left, .gallery-page-scoller-action-right-trigger:hover>.gallery-page-scoller-action-right {
+    visibility: visible;
+}
+
+.gallery-page-scoller-action-left-trigger:active>.gallery-page-scoller-action-left, .gallery-page-scoller-action-right-trigger:active>.gallery-page-scoller-action-right {
+    box-shadow: -2px -2px 2px #ffffff00, 2px 2px 2px #00000000, inset -2px -2px 2px #ffffffaf, inset 2px 2px 2px #0000002f;
+}
+
+.left-arrow {
+    width: 15px;
+    height: 15px;
+    margin: auto;
+    margin-right: 0px;
+    border-top: 3px solid #31344b;
+    border-left: 3px solid #31344b;
+    transform: rotate(-45deg);
+}
+
+.right-arrow {
+    width: 15px;
+    height: 15px;
+    margin: auto;
+    margin-left: 0px;
+    border-top: 3px solid #31344b;
+    border-right: 3px solid #31344b;
+    transform: rotate(45deg);
+}
