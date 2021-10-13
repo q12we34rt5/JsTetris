@@ -1218,7 +1218,7 @@ function CreateTetris(board, next1, next2, next3, next4, next5, hold, kwargs = {
     details: {
         width: 10,
         height: 20,
-        block_texture_src: "assets/white/texture6.png",
+        block_texture_src: "assets/white/texture10.png",
         block_shadow_src: "assets/white/texture1_shadow.png"
     }
 }) {
